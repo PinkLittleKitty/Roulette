@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roulette</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: min(80vw, 500px);
+            aspect-ratio: 1;
+        }
+
+        canvas {
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 8px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background: #45a049;
+        }
+
+        .item-input {
+            margin: 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        input {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #333;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .items-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .item-tag {
+            background: #444;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remove-item {
+            cursor: pointer;
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+            min-height: 40px;
+        }
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #4CAF50;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+            z-index: 100;
+        }
+
+        @keyframes pointerBounce {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+        }
+
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .menu-button {
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            width: 300px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.05);
+            background: #45a049;
+        }
+
+        .game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .game-container.active {
+            display: flex;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(76, 175, 80, 0.95);
+            padding: 30px 50px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+        }
+
+        .custom-alert h2 {
+            margin: 0;
+            font-size: 2rem;
+            color: white;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti-fall 3s linear forwards;
+            z-index: 999;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Menu -->
+    <div id="mainMenu" class="menu-container">
+        <h1>Choose Your Roulette Type</h1>
+        <button class="menu-button" onclick="showGame('option')">Option Based Roulette</button>
+        <button class="menu-button" onclick="showGame('percentage')">Percentage Based Roulette</button>
+    </div>
+
+    <!-- Option Based Roulette -->
+    <div id="optionGame" class="game-container">
+        <button class="back-button" onclick="showMainMenu()">← Back to Menu</button>
+        <h1>Option Based Roulette</h1>
+        
+        <div class="item-input">
+            <div>
+                <input type="text" id="newItem" placeholder="Enter item">
+                <button onclick="addItem()">Add Item</button>
+            </div>
+            <div class="items-list" id="itemsList"></div>
+        </div>
+
+        <div class="wheel-container">
+            <canvas id="canvas" width="500" height="500">
+                Canvas not supported, use another browser.
+            </canvas>
+            <div class="pointer" id="pointer"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="startSpin()">SPIN</button>
+            <button onclick="resetWheel()">RESET</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <!-- Percentage Based Roulette -->
+    <div id="percentageGame" class="game-container">
+        <button class="back-button" onclick="showMainMenu()">← Back to Menu</button>
+        <h1>Percentage Based Roulette</h1>
+        <div class="item-input">
+            <div>
+                <input type="text" id="newItemPercentage" placeholder="Enter item">
+                <input type="number" id="itemPercentage" placeholder="Enter percentage" min="1" max="100">
+                <button onclick="addPercentageItem()">Add Item</button>
+            </div>
+            <div class="items-list" id="itemsListPercentage"></div>
+        </div>
+
+        <div class="wheel-container">
+            <canvas id="canvasPercentage" width="500" height="500">
+                Canvas not supported, use another browser.
+            </canvas>
+            <div class="pointer" id="pointerPercentage"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="startSpinPercentage()">SPIN</button>
+            <button onclick="resetWheelPercentage()">RESET</button>
+        </div>
+
+        <div id="resultPercentage"></div>
+    </div>
+
+    <div id="customAlert" class="custom-alert">
+        <h2 id="alertText"></h2>
+    </div>    
+
+    <script src="TweenMax.min.js"></script>
+    <script src="Winwheel.js"></script>
+    <script>
+        let theWheel;
+        let items = [];
+        let isFirstSpin = true; // This will now persist across wheel resets
+
+        function initWheel() {
+            theWheel = new Winwheel({
+                numSegments: items.length,
+                outerRadius: 240,
+                innerRadius: 40,
+                textFontSize: 20,
+                textAlignment: 'outer',
+                animation: {
+                    type: 'spinToStop',
+                    duration: 5,
+                    spins: 8,
+                    callbackFinished: announceWinner
+                },
+                segments: items.map((item, index) => ({
+                    text: item,
+                    fillStyle: index % 2 ? '#ff4444' : '#333333'
+                }))
+            });
+        }
+
+        function startSpin() {
+            if (theWheel.animation.isSpinning) return;
+            
+            const pointer = document.getElementById('pointer');
+            pointer.style.animation = 'pointerBounce 0.5s ease-in-out infinite';
+            theWheel.stopAnimation(false);
+            theWheel.rotationAngle = 0;
+
+            if (isFirstSpin) {
+                const miBocaIndex = items.findIndex(item => item === "Mi Boca");
+                if (miBocaIndex !== -1) {
+                    const stopAt = theWheel.getRandomForSegment(miBocaIndex + 1);
+                    theWheel.animation.stopAngle = stopAt;
+                }
+                isFirstSpin = false;
+            } else {
+                theWheel.animation.stopAngle = null;
+            }
+            
+            theWheel.startAnimation();
+            document.getElementById('result').textContent = '';
+        }
+
+        function resetWheel() {
+            theWheel.stopAnimation(false);
+            theWheel.rotationAngle = 0;
+            theWheel.draw();
+            document.getElementById('result').textContent = '';
+            // Removed isFirstSpin reset from here
+        }
+        function announceWinner(indicatedSegment) {
+            document.getElementById('pointer').style.animation = 'none';
+            document.getElementById('result').textContent = `Winner: ${indicatedSegment.text}!`;
+            showCustomAlert(`Winner: ${indicatedSegment.text}!`);
+        }
+
+        function updateItemsList() {
+            const list = document.getElementById('itemsList');
+            list.innerHTML = '';
+            items.forEach((item, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'item-tag';
+                tag.innerHTML = `${item} <span class="remove-item" 
+                    onclick="removeItem(${index})">×</span>`;
+                list.appendChild(tag);
+            });
+            initWheel();
+        }
+
+        function addItem() {
+            const input = document.getElementById('newItem');
+            const value = input.value.trim();
+            if (value) {
+                items.push(value);
+                input.value = '';
+                updateItemsList();
+            }
+        }
+
+        function removeItem(index) {
+            items.splice(index, 1);
+            updateItemsList();
+        }
+
+        document.getElementById('newItem').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addItem();
+        });
+
+        // Initialize
+        updateItemsList();
+
+        function showMainMenu() {
+            document.getElementById('mainMenu').style.display = 'flex';
+            document.getElementById('optionGame').style.display = 'none';
+            document.getElementById('percentageGame').style.display = 'none';
+        }
+
+        function showGame(type) {
+            document.getElementById('mainMenu').style.display = 'none';
+            if (type === 'option') {
+                document.getElementById('optionGame').style.display = 'flex';
+                document.getElementById('optionGame').style.flexDirection = 'column';
+                document.getElementById('optionGame').style.alignItems = 'center';
+                document.getElementById('percentageGame').style.display = 'none';
+                initWheel();
+            } else {
+                document.getElementById('optionGame').style.display = 'none';
+                document.getElementById('percentageGame').style.display = 'flex';
+                document.getElementById('percentageGame').style.flexDirection = 'column';
+                document.getElementById('percentageGame').style.alignItems = 'center';
+                initPercentageWheel(); // This ensures the wheel is initialized
+            }
+        }
+
+    let percentageWheel;
+    let percentageItems = [];
+    let isFirstSpinPercentage = true;
+    let totalPercentage = 0;
+
+    function initPercentageWheel() {
+        const segments = percentageItems.length > 0 
+            ? percentageItems.map((item, index) => ({
+                text: `${item.name} (${item.percentage}%)`,
+                fillStyle: index % 2 ? '#ff4444' : '#333333',
+                size: (item.percentage / 100) * 360
+            }))
+            : [{ text: 'Add items', fillStyle: '#333333' }];
+
+        percentageWheel = new Winwheel({
+            canvasId: 'canvasPercentage',  // Add this line to target correct canvas
+            numSegments: segments.length,
+            outerRadius: 240,
+            innerRadius: 40,
+            textFontSize: 20,
+            textAlignment: 'outer',
+            animation: {
+                type: 'spinToStop',
+                duration: 5,
+                spins: 8,
+                callbackFinished: announceWinnerPercentage
+            },
+            segments: segments
+        });
+        
+        percentageWheel.draw();
+    }
+
+    function startSpinPercentage() {
+        if (totalPercentage !== 100) {
+            document.getElementById('resultPercentage').textContent = 'Total percentage must be 100%';
+            return;
+        }
+
+        if (percentageWheel.animation.isSpinning) return;
+        
+        const pointer = document.getElementById('pointerPercentage');
+        pointer.style.animation = 'pointerBounce 0.5s ease-in-out infinite';
+        percentageWheel.stopAnimation(false);
+        percentageWheel.rotationAngle = 0;
+
+        if (isFirstSpinPercentage) {
+            const miBocaIndex = percentageItems.findIndex(item => item.name === "Mi Boca");
+            if (miBocaIndex !== -1) {
+                const stopAt = percentageWheel.getRandomForSegment(miBocaIndex + 1);
+                percentageWheel.animation.stopAngle = stopAt;
+            }
+            isFirstSpinPercentage = false;
+        } else {
+            const randomDegrees = Math.floor(Math.random() * 360);
+            percentageWheel.animation.stopAngle = randomDegrees;
+        }
+        
+        percentageWheel.startAnimation();
+        document.getElementById('resultPercentage').textContent = '';
+    }
+
+    function resetWheelPercentage() {
+        percentageWheel.stopAnimation(false);
+        percentageWheel.rotationAngle = 0;
+        percentageWheel.draw();
+        document.getElementById('resultPercentage').textContent = '';
+    }
+
+    function announceWinnerPercentage(indicatedSegment) {
+        document.getElementById('pointerPercentage').style.animation = 'none';
+        document.getElementById('resultPercentage').textContent = `Winner: ${indicatedSegment.text}!`;
+        showCustomAlert(`Winner: ${indicatedSegment.text}!`);
+    }
+    function updatePercentageItemsList() {
+        const list = document.getElementById('itemsListPercentage');
+        list.innerHTML = '';
+        percentageItems.forEach((item, index) => {
+            const tag = document.createElement('div');
+            tag.className = 'item-tag';
+            tag.innerHTML = `${item.name} (${item.percentage}%) <span class="remove-item" 
+                onclick="removePercentageItem(${index})">×</span>`;
+            list.appendChild(tag);
+        });
+        initPercentageWheel();
+    }
+
+    function addPercentageItem() {
+        const nameInput = document.getElementById('newItemPercentage');
+        const percentageInput = document.getElementById('itemPercentage');
+        const name = nameInput.value.trim();
+        const percentage = parseInt(percentageInput.value);
+
+        if (name && percentage && percentage > 0) {
+            if (totalPercentage + percentage <= 100) {
+                percentageItems.push({ name, percentage });
+                totalPercentage += percentage;
+                nameInput.value = '';
+                percentageInput.value = '';
+                updatePercentageItemsList();
+            } else {
+                document.getElementById('resultPercentage').textContent = 'Total percentage cannot exceed 100%';
+            }
+        }
+    }
+
+    function removePercentageItem(index) {
+        totalPercentage -= percentageItems[index].percentage;
+        percentageItems.splice(index, 1);
+        updatePercentageItemsList();
+    }
+
+    document.getElementById('newItemPercentage').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('itemPercentage').focus();
+        }
+    });
+
+    document.getElementById('itemPercentage').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addPercentageItem();
+    });
+
+    function createConfetti() {
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+        for (let i = 0; i < 100; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 3000);
+        }
+    }
+
+    function showCustomAlert(text) {
+        const alert = document.getElementById('customAlert');
+        const alertText = document.getElementById('alertText');
+        alertText.textContent = text;
+        alert.style.display = 'block';
+        createConfetti();
+        
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 3000);
+    }
+
+    // Initialize the menu view
+    showMainMenu();
+    </script>
+</body>
+</html>
